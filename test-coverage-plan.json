@@ -1,0 +1,109 @@
+{
+  "title": "新增测试用例覆盖率计划（目标 85%）",
+  "description": "为 Timber 日志库新增测试用例，使代码覆盖率达到 85%",
+  "steps": [
+    {
+      "id": 1,
+      "title": "配置 JaCoCo 代码覆盖率插件",
+      "description": "在 timber/build.gradle 中添加 JaCoCo 插件配置，生成覆盖率报告，并设置 85% 的覆盖率阈值",
+      "files": ["timber/build.gradle"],
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "title": "新增 Forest 日志方法（带 Throwable + 消息）的测试",
+      "description": "为 Forest 的 v(t, message)、d(t, message)、i(t, message)、w(t, message)、wtf(t, message) 覆盖全部重载，当前这些通过 Forest 调用的 Throwable+message 组合未被测试",
+      "test_file": "timber/src/test/java/timber/log/TimberTest.kt",
+      "methods_to_add": [
+        "exceptionWithMessageAllLevels",
+        "logWithExceptionAndMessage",
+        "logWithExceptionOnly"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "title": "新增 Forest.log() 带 Throwable 重载的测试",
+      "description": "覆盖 Forest.log(priority, t) 和 Forest.log(priority, t, message) 以及 Forest.log(priority, t, message, args) 这些在现有测试中未被覆盖的方法",
+      "test_file": "timber/src/test/java/timber/log/TimberTest.kt",
+      "methods_to_add": [
+        "logAtSpecifiedPriorityWithThrowable",
+        "logAtSpecifiedPriorityWithThrowableAndMessage",
+        "logAtSpecifiedPriorityWithThrowableMessageAndArgs"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "title": "新增 DebugTree.log() 分块（chunking）使用 ASSERT 优先级的测试",
+      "description": "DebugTree.log() 对超长消息的分块处理逻辑中，ASSERT 优先级走 Log.wtf() 分支，目前仅有 DEBUG 优先级的分块测试，缺少 ASSERT 优先级下的覆盖",
+      "test_file": "timber/src/test/java/timber/log/TimberTest.kt",
+      "methods_to_add": [
+        "chunkAcrossNewlinesAndLimitWithAssertPriority"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "title": "新增空字符串消息（Empty String Message）的测试",
+      "description": "prepareLog() 中 message.isNullOrEmpty() 会把空字符串和 null 一样处理：有 Throwable 时记录堆栈，无 Throwable 时直接丢弃。需要补充空字符串场景的测试",
+      "test_file": "timber/src/test/java/timber/log/TimberTest.kt",
+      "methods_to_add": [
+        "emptyMessageWithThrowable",
+        "emptyMessageWithoutThrowable"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 6,
+      "title": "新增 Forest.log() 带格式化参数的测试",
+      "description": "覆盖 log(priority, message, args) 在 Forest 层面的格式化分支，当前 logAtSpecifiedPriority() 仅测试无 args 的情况",
+      "test_file": "timber/src/test/java/timber/log/TimberTest.kt",
+      "methods_to_add": [
+        "logAtSpecifiedPriorityWithFormatArgs"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 7,
+      "title": "新增 Forest.log(priority, tag, message, t) 抛出 AssertionError 的测试",
+      "description": "Forest.log(priority, tag, message, t) 方法体内直接 throw AssertionError()，该异常分支未被任何现有测试覆盖",
+      "test_file": "timber/src/test/java/timber/log/TimberTest.kt",
+      "methods_to_add": [
+        "forestLogDirectlyThrowsAssertionError"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 8,
+      "title": "新增多棵树（Multiple Trees）同时接收标签（tag）的测试",
+      "description": "验证调用 Timber.tag() 时，tag 被设置到每棵已植入的树上，并且所有树都以该 tag 记录日志",
+      "test_file": "timber/src/test/java/timber/log/TimberTest.kt",
+      "methods_to_add": [
+        "tagIsAppliedToAllPlantedTrees"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 9,
+      "title": "新增 isLoggable 仅对部分树生效的测试",
+      "description": "当多棵树被植入，其中一棵的 isLoggable 返回 false，验证只有满足条件的树才会记录日志，另一棵不记录",
+      "test_file": "timber/src/test/java/timber/log/TimberTest.kt",
+      "methods_to_add": [
+        "isLoggableFiltersDifferentlyPerTree"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 10,
+      "title": "运行测试并验证覆盖率 ≥ 85%",
+      "description": "执行 ./gradlew :timber:jacocoTestReport :timber:jacocoTestCoverageVerification，检查生成的 HTML/XML 报告，确认行覆盖率达到 85%",
+      "commands": [
+        "./gradlew :timber:test",
+        "./gradlew :timber:jacocoTestReport",
+        "./gradlew :timber:jacocoTestCoverageVerification"
+      ],
+      "status": "pending"
+    }
+  ]
+}
