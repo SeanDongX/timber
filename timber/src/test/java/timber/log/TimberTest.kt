@@ -543,6 +543,229 @@ class TimberTest {
         .hasDebugMessage("TimberTest", "Test formatting: Test message logged. 100")
   }
 
+  @Test fun exceptionWithMessageAllLevels() {
+    Timber.plant(Timber.DebugTree())
+    val t = truncatedThrowable(RuntimeException::class.java)
+
+    Timber.v(t, "Verbose message")
+    Timber.d(t, "Debug message")
+    Timber.i(t, "Info message")
+    Timber.w(t, "Warn message")
+    Timber.e(t, "Error message")
+    Timber.wtf(t, "Assert message")
+
+    val logs = getLogs()
+    assertThat(logs).hasSize(6)
+    assertThat(logs[0].type).isEqualTo(Log.VERBOSE)
+    assertThat(logs[0].msg).startsWith("Verbose message")
+    assertThat(logs[0].msg).contains("RuntimeException")
+    assertThat(logs[1].type).isEqualTo(Log.DEBUG)
+    assertThat(logs[1].msg).startsWith("Debug message")
+    assertThat(logs[2].type).isEqualTo(Log.INFO)
+    assertThat(logs[2].msg).startsWith("Info message")
+    assertThat(logs[3].type).isEqualTo(Log.WARN)
+    assertThat(logs[3].msg).startsWith("Warn message")
+    assertThat(logs[4].type).isEqualTo(Log.ERROR)
+    assertThat(logs[4].msg).startsWith("Error message")
+    assertThat(logs[5].type).isEqualTo(Log.ASSERT)
+    assertThat(logs[5].msg).startsWith("Assert message")
+  }
+
+  @Test fun exceptionWithFormattedMessageAllLevels() {
+    Timber.plant(Timber.DebugTree())
+    val t = truncatedThrowable(RuntimeException::class.java)
+
+    Timber.v(t, "Verbose %s", "formatted")
+    Timber.d(t, "Debug %s", "formatted")
+    Timber.i(t, "Info %s", "formatted")
+    Timber.w(t, "Warn %s", "formatted")
+    Timber.e(t, "Error %s", "formatted")
+    Timber.wtf(t, "Assert %s", "formatted")
+
+    val logs = getLogs()
+    assertThat(logs).hasSize(6)
+    assertThat(logs[0].msg).startsWith("Verbose formatted")
+    assertThat(logs[1].msg).startsWith("Debug formatted")
+    assertThat(logs[2].msg).startsWith("Info formatted")
+    assertThat(logs[3].msg).startsWith("Warn formatted")
+    assertThat(logs[4].msg).startsWith("Error formatted")
+    assertThat(logs[5].msg).startsWith("Assert formatted")
+  }
+
+  @Test fun logAtSpecifiedPriorityWithThrowableOnly() {
+    Timber.plant(Timber.DebugTree())
+    val t = truncatedThrowable(RuntimeException::class.java)
+
+    Timber.log(Log.VERBOSE, t)
+    Timber.log(Log.DEBUG, t)
+    Timber.log(Log.INFO, t)
+    Timber.log(Log.WARN, t)
+    Timber.log(Log.ERROR, t)
+    Timber.log(Log.ASSERT, t)
+
+    val logs = getLogs()
+    assertThat(logs).hasSize(6)
+    assertThat(logs[0].type).isEqualTo(Log.VERBOSE)
+    assertThat(logs[0].msg).contains("RuntimeException")
+    assertThat(logs[1].type).isEqualTo(Log.DEBUG)
+    assertThat(logs[2].type).isEqualTo(Log.INFO)
+    assertThat(logs[3].type).isEqualTo(Log.WARN)
+    assertThat(logs[4].type).isEqualTo(Log.ERROR)
+    assertThat(logs[5].type).isEqualTo(Log.ASSERT)
+  }
+
+  @Test fun logAtSpecifiedPriorityWithThrowableAndMessage() {
+    Timber.plant(Timber.DebugTree())
+    val t = truncatedThrowable(RuntimeException::class.java)
+
+    Timber.log(Log.VERBOSE, t, "Verbose message")
+    Timber.log(Log.DEBUG, t, "Debug message")
+    Timber.log(Log.INFO, t, "Info message")
+    Timber.log(Log.WARN, t, "Warn message")
+    Timber.log(Log.ERROR, t, "Error message")
+    Timber.log(Log.ASSERT, t, "Assert message")
+
+    val logs = getLogs()
+    assertThat(logs).hasSize(6)
+    assertThat(logs[0].type).isEqualTo(Log.VERBOSE)
+    assertThat(logs[0].msg).startsWith("Verbose message")
+    assertThat(logs[0].msg).contains("RuntimeException")
+    assertThat(logs[1].msg).startsWith("Debug message")
+    assertThat(logs[2].msg).startsWith("Info message")
+    assertThat(logs[3].msg).startsWith("Warn message")
+    assertThat(logs[4].msg).startsWith("Error message")
+    assertThat(logs[5].msg).startsWith("Assert message")
+  }
+
+  @Test fun logAtSpecifiedPriorityWithThrowableMessageAndArgs() {
+    Timber.plant(Timber.DebugTree())
+    val t = truncatedThrowable(RuntimeException::class.java)
+
+    Timber.log(Log.DEBUG, t, "Formatted %s %d", "message", 42)
+
+    val logs = getLogs()
+    assertThat(logs).hasSize(1)
+    assertThat(logs[0].type).isEqualTo(Log.DEBUG)
+    assertThat(logs[0].msg).startsWith("Formatted message 42")
+    assertThat(logs[0].msg).contains("RuntimeException")
+  }
+
+  @Test fun logAtSpecifiedPriorityWithFormatArgs() {
+    Timber.plant(Timber.DebugTree())
+
+    Timber.log(Log.VERBOSE, "Hello %s!", "World")
+    Timber.log(Log.DEBUG, "Count: %d", 5)
+    Timber.log(Log.INFO, "Bool: %b", true)
+    Timber.log(Log.WARN, "Float: %.1f", 3.14)
+    Timber.log(Log.ERROR, "Multi %s %d", "args", 99)
+    Timber.log(Log.ASSERT, "Assert %s", "msg")
+
+    assertLog()
+        .hasVerboseMessage("TimberTest", "Hello World!")
+        .hasDebugMessage("TimberTest", "Count: 5")
+        .hasInfoMessage("TimberTest", "Bool: true")
+        .hasWarnMessage("TimberTest", "Float: 3.1")
+        .hasErrorMessage("TimberTest", "Multi args 99")
+        .hasAssertMessage("TimberTest", "Assert msg")
+        .hasNoMoreMessages()
+  }
+
+  @Test fun chunkAcrossNewlinesAndLimitWithAssertPriority() {
+    Timber.plant(Timber.DebugTree())
+    Timber.wtf(
+        'a'.repeat(3000) + '\n'.toString() + 'b'.repeat(6000) + '\n'.toString() + 'c'.repeat(3000))
+
+    assertLog()
+        .hasAssertMessage("TimberTest", 'a'.repeat(3000))
+        .hasAssertMessage("TimberTest", 'b'.repeat(4000))
+        .hasAssertMessage("TimberTest", 'b'.repeat(2000))
+        .hasAssertMessage("TimberTest", 'c'.repeat(3000))
+        .hasNoMoreMessages()
+  }
+
+  @Test fun emptyMessageWithThrowable() {
+    Timber.plant(Timber.DebugTree())
+    val t = truncatedThrowable(RuntimeException::class.java)
+
+    Timber.d(t, "")
+
+    assertExceptionLogged(Log.DEBUG, "", "RuntimeException")
+  }
+
+  @Test fun emptyMessageWithoutThrowable() {
+    Timber.plant(Timber.DebugTree())
+    Timber.d("")
+
+    assertLog().hasNoMoreMessages()
+  }
+
+  @Test fun forestLogDirectlyThrowsAssertionError() {
+    assertThrows<AssertionError> {
+      Timber.asTree().log(Log.DEBUG, "tag", "message", null)
+    }
+  }
+
+  @Test fun tagIsAppliedToAllPlantedTrees() {
+    val logs1 = ArrayList<String>()
+    val logs2 = ArrayList<String>()
+    Timber.plant(object : Timber.DebugTree() {
+      override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+        logs1.add("$tag $message")
+      }
+    })
+    Timber.plant(object : Timber.DebugTree() {
+      override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+        logs2.add("$tag $message")
+      }
+    })
+
+    Timber.tag("SharedTag").d("Hello")
+
+    assertThat(logs1).containsExactly("SharedTag Hello")
+    assertThat(logs2).containsExactly("SharedTag Hello")
+  }
+
+  @Test fun isLoggableFiltersDifferentlyPerTree() {
+    Timber.plant(object : Timber.DebugTree() {
+      override fun isLoggable(tag: String?, priority: Int): Boolean = priority >= Log.WARN
+    })
+    Timber.plant(object : Timber.DebugTree() {
+      override fun isLoggable(tag: String?, priority: Int): Boolean = priority == Log.DEBUG
+    })
+
+    Timber.d("Debug message")
+    Timber.w("Warn message")
+
+    val logs = getLogs()
+    // tree1 logs only WARN+, tree2 logs only DEBUG
+    // DEBUG: only tree2 logs it -> 1 entry
+    // WARN: only tree1 logs it -> 1 entry
+    assertThat(logs).hasSize(2)
+    assertThat(logs.map { it.type }).containsExactly(Log.DEBUG, Log.WARN)
+  }
+
+  @Test fun nullMessageWithThrowableCustomTag() {
+    Timber.plant(Timber.DebugTree())
+    val t = truncatedThrowable(IllegalStateException::class.java)
+
+    Timber.tag("CustomTag").e(t, null)
+
+    assertExceptionLogged(Log.ERROR, "", "IllegalStateException", "CustomTag")
+  }
+
+  @Test fun logExceptionOnlyWithCustomTag() {
+    Timber.plant(Timber.DebugTree())
+    val t = truncatedThrowable(RuntimeException::class.java)
+
+    Timber.tag("MyTag").log(Log.WARN, t)
+
+    val logs = getLogs()
+    assertThat(logs).hasSize(1)
+    assertThat(logs[0].type).isEqualTo(Log.WARN)
+    assertThat(logs[0].tag).isEqualTo("MyTag")
+    assertThat(logs[0].msg).contains("RuntimeException")
+  }
+
   private fun <T : Throwable> truncatedThrowable(throwableClass: Class<T>): T {
     val throwable = throwableClass.newInstance()
     val stackTrace = throwable.stackTrace

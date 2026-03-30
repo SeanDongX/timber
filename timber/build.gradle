@@ -2,6 +2,7 @@ apply plugin: 'org.jetbrains.kotlin.multiplatform'
 apply plugin: 'com.android.library'
 apply plugin: 'com.vanniktech.maven.publish'
 apply plugin: 'org.jetbrains.dokka' // Must be applied here for publish plugin.
+apply plugin: 'jacoco'
 
 
 kotlin {
@@ -33,4 +34,44 @@ dependencies {
   testImplementation libs.robolectric
 
   lintPublish project(':timber-lint')
+}
+
+jacoco {
+  toolVersion = "0.8.12"
+}
+
+tasks.withType(Test).configureEach {
+  jacoco {
+    includeNoLocationClasses = true
+    excludes = ['jdk.internal.*']
+  }
+}
+
+task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
+  reports {
+    xml.required = true
+    html.required = true
+  }
+  def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
+      '**/*Test*.*', 'android/**/*.*']
+  def debugTree = fileTree(dir: "${buildDir}/tmp/kotlin-classes/debug", excludes: fileFilter)
+  def mainSrc = "${project.projectDir}/src/androidMain/kotlin"
+  sourceDirectories.from = files([mainSrc])
+  classDirectories.from = files([debugTree])
+  executionData.from = fileTree(dir: project.buildDir, includes: ['outputs/unit_test_code_coverage/debugUnitTest/*.ec', 'jacoco/testDebugUnitTest.exec'])
+}
+
+task jacocoTestCoverageVerification(type: JacocoCoverageVerification, dependsOn: 'jacocoTestReport') {
+  violationRules {
+    rule {
+      limit {
+        minimum = 0.85
+      }
+    }
+  }
+  def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
+      '**/*Test*.*', 'android/**/*.*']
+  def debugTree = fileTree(dir: "${buildDir}/tmp/kotlin-classes/debug", excludes: fileFilter)
+  classDirectories.from = files([debugTree])
+  executionData.from = fileTree(dir: project.buildDir, includes: ['outputs/unit_test_code_coverage/debugUnitTest/*.ec', 'jacoco/testDebugUnitTest.exec'])
 }
